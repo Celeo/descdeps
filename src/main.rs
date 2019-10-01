@@ -9,11 +9,13 @@ use std::{fs, path::PathBuf, process, str::FromStr};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
 
+mod drivers;
+mod node_driver;
 mod rust_driver;
-mod traits;
 
+use drivers::Driver;
+use node_driver::NodeDriver;
 use rust_driver::RustDriver;
-use traits::Driver;
 
 fn setup_logger(enable_debug: bool) {
     let stdout = ConsoleAppender::builder()
@@ -63,10 +65,7 @@ impl ProjectType {
                 error!("Support for this language is not yet available");
                 process::exit(0);
             }
-            ProjectType::Node => {
-                error!("Support for this language is not yet available");
-                process::exit(0);
-            }
+            ProjectType::Node => Box::from(NodeDriver::new(user_agent)),
         }
     }
 }
@@ -135,8 +134,10 @@ fn main() {
     };
     debug!("Project type is {}", project_type);
 
-    debug!("Reading dependency file");
+    debug!("Constructing driver");
     let driver = project_type.driver(user_agent);
+
+    debug!("Reading dependency file");
     let content = match fs::read_to_string(path.clone()) {
         Ok(c) => c,
         Err(e) => {
