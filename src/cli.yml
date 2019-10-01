@@ -1,0 +1,11 @@
+name: descdeps
+author: Celeo <celeodor@fastmail.com>
+about: Describes project dependencies
+args:
+  - type:
+      short: t
+      long: type
+      help: Manually set the type of project to describe
+      takes_value: true
+      value_name: TYPE (rust, Python, etc.)
+      required: false

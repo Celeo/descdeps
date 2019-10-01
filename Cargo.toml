@@ -5,3 +5,7 @@ authors = ["Celeo <celeodor@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+clap = {version = "2.33.0", features = ["yaml"]}
+colored = "1.8.0"
+strum = "0.16.0"
+strum_macros = "0.16.0"
