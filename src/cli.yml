@@ -7,8 +7,14 @@ args:
       long: type
       help: Manually set the type of project to describe
       takes_value: true
-      value_name: TYPE (rust, Python, etc.)
+      value_name: type (Rust, Python, etc.)
   - debug:
       short: d
       long: debug
       help: Enable debug logging
+  - agent:
+      short: a
+      long: agent
+      help: Custom user-agent header value
+      takes_value: true
+      value_name: value
