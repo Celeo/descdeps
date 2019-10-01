@@ -1,3 +1,3 @@
 pub trait Driver {
-    fn get_info(self, name: &str) -> String;
+    fn print_info(&self, name: &str);
 }

@@ -1,6 +1,11 @@
 use clap::{crate_version, load_yaml, App};
-use colored::Colorize;
-use std::{path::PathBuf, process, str::FromStr};
+use log::{debug, error, LevelFilter};
+use log4rs::{
+    append::console::ConsoleAppender,
+    config::{Appender, Config, Logger, Root},
+    encode::pattern::PatternEncoder,
+};
+use std::{fs, path::PathBuf, process, str::FromStr};
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
 
@@ -9,6 +14,28 @@ mod traits;
 
 use rust_driver::RustDriver;
 use traits::Driver;
+
+fn setup_logger(enable_debug: bool) {
+    let stdout = ConsoleAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{d} {h({l})} {m}{n}")))
+        .build();
+    let minimum_level = if enable_debug {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+    let config = Config::builder()
+        .appender(Appender::builder().build("stdout", Box::new(stdout)))
+        .logger(
+            Logger::builder()
+                .appender("stdout")
+                .additive(false)
+                .build("descdeps", minimum_level),
+        )
+        .build(Root::builder().appender("stdout").build(LevelFilter::Warn))
+        .unwrap();
+    log4rs::init_config(config).expect("Could not set log4rs configuration");
+}
 
 #[derive(Debug, Display, EnumString, EnumIter, Copy, Clone)]
 enum ProjectType {
@@ -21,7 +48,7 @@ enum ProjectType {
 }
 
 impl ProjectType {
-    fn path_matchers(self) -> Vec<PathBuf> {
+    fn get_path_matchers(self) -> Vec<PathBuf> {
         match self {
             ProjectType::Rust => vec![["Cargo.toml"].iter().collect()],
             ProjectType::Python => vec![["requirements.txt"].iter().collect()],
@@ -32,28 +59,32 @@ impl ProjectType {
     fn driver(self, user_agent: &str) -> Box<dyn Driver> {
         match self {
             ProjectType::Rust => Box::from(RustDriver::new(user_agent)),
-            ProjectType::Python => unimplemented!(),
-            ProjectType::Node => unimplemented!(),
+            ProjectType::Python => {
+                error!("Support for this language is not yet available");
+                process::exit(0);
+            }
+            ProjectType::Node => {
+                error!("Support for this language is not yet available");
+                process::exit(0);
+            }
         }
     }
 }
 
-fn debug(enabled: bool, message: &str) {
-    if enabled {
-        println!("{}: {}", "DEBUG".cyan(), message);
+fn match_project_type() -> Option<(ProjectType, PathBuf)> {
+    for project_type in ProjectType::iter() {
+        if let Some(pt) = match_single_project_type(project_type) {
+            return Some(pt);
+        }
     }
+    None
 }
 
-fn get_project_type(debug_enabled: bool) -> Option<ProjectType> {
-    for project_type in ProjectType::iter() {
-        for path in project_type.path_matchers() {
-            debug(
-                debug_enabled,
-                &format!("Checking path {:?} for type {}", path, project_type),
-            );
-            if path.exists() {
-                return Some(project_type);
-            }
+fn match_single_project_type(project_type: ProjectType) -> Option<(ProjectType, PathBuf)> {
+    for path in project_type.get_path_matchers() {
+        debug!("Checking path {:?} for type {}", path, project_type);
+        if path.exists() {
+            return Some((project_type, path));
         }
     }
     None
@@ -63,31 +94,58 @@ fn main() {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).version(crate_version!()).get_matches();
     let debug_enabled = matches.is_present("debug");
+
+    setup_logger(debug_enabled);
+
     let user_agent = match matches.value_of("agent") {
         Some(val) => val,
         None => "",
     };
+    debug!("User agent set to: {}", user_agent);
 
-    debug(debug_enabled, "Starting");
-
-    debug(debug_enabled, "Determining project type");
-    let project_type: ProjectType = match matches.value_of("type") {
-        Some(val) => match ProjectType::from_str(val) {
-            Ok(ty) => ty,
-            Err(_) => {
-                println!("{} unknown project type '{}'", "Error".red(), val);
+    debug!("Determining project type");
+    let (project_type, path): (ProjectType, PathBuf) = match matches.value_of("type") {
+        Some(override_value) => {
+            let project_type = match ProjectType::from_str(override_value) {
+                Ok(pt) => pt,
+                Err(_) => {
+                    error!(
+                        "Could not match '{}' to a known project type",
+                        override_value
+                    );
+                    process::exit(1);
+                }
+            };
+            let path = match match_single_project_type(project_type) {
+                Some(pair) => pair.1,
+                None => {
+                    error!("Could not find matching dependencies file for overridden project type '{}'", override_value);
+                    process::exit(1);
+                }
+            };
+            (project_type, path)
+        }
+        None => match match_project_type() {
+            Some(pair_found) => pair_found,
+            None => {
+                error!("Could not determine project type");
                 process::exit(1);
             }
         },
-        None => match get_project_type(debug_enabled) {
-            Some(ty) => ty,
-            None => {
-                println!("{} could not determine project version", "Error".red());
-                return;
-            }
-        },
     };
-    println!("Project type is {}", project_type);
+    debug!("Project type is {}", project_type);
 
+    debug!("Reading dependency file");
     let driver = project_type.driver(user_agent);
+    let content = match fs::read_to_string(path.clone()) {
+        Ok(c) => c,
+        Err(e) => {
+            debug!("Could not read file '{}': {}", path.display(), e);
+            error!("Could not read dependencies file '{}'", path.display());
+            process::exit(1);
+        }
+    };
+
+    debug!("Getting info from driver");
+    driver.print_info(&content);
 }
