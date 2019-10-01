@@ -3,6 +3,17 @@ name = "descdeps"
 version = "0.1.0"
 authors = ["Celeo <celeodor@gmail.com>"]
 edition = "2018"
+description = "CLI utility to describe project dependencies"
+repository = "https://github.com/Celeo/descdeps"
+readme = "README.md"
+keywords = ["describe", "dependencies"]
+categories = ["command-line-utilities"]
+license = "Apache-2.0 AND MIT"
+exclude = [
+    ".gitignore",
+    ".circleci/config.yml",
+    "Cargo.lock"
+]
 
 [dependencies]
 clap = {version = "2.33.0", features = ["yaml"]}
@@ -16,3 +27,6 @@ serde = "1.0.101"
 serde_json = "1.0.40"
 strum = "0.16.0"
 strum_macros = "0.16.0"
+
+[dev-dependencies]
+mockito = "0.21.0"
