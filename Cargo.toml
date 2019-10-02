@@ -1,6 +1,6 @@
 [package]
 name = "descdeps"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Celeo <celeodor@gmail.com>"]
 edition = "2018"
 description = "CLI utility to describe project dependencies"
