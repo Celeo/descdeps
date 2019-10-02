@@ -1,5 +1,4 @@
 name: descdeps
-author: Celeo <celeodor@fastmail.com>
 about: Describes project dependencies
 args:
   - type:
