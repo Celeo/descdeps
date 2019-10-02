@@ -17,3 +17,6 @@ args:
       help: Custom user-agent header value
       takes_value: true
       value_name: value
+subcommands:
+  - list:
+      about: list available languages

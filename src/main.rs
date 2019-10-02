@@ -1,5 +1,5 @@
-use clap::{crate_version, load_yaml, App};
-use log::{debug, error, LevelFilter};
+use clap::{crate_version, load_yaml, App, ArgMatches};
+use log::{debug, error, info, LevelFilter};
 use log4rs::{
     append::console::ConsoleAppender,
     config::{Appender, Config, Logger, Root},
@@ -53,19 +53,19 @@ impl ProjectType {
     fn get_path_matchers(self) -> Vec<PathBuf> {
         match self {
             ProjectType::Rust => vec![["Cargo.toml"].iter().collect()],
-            ProjectType::Python => vec![["requirements.txt"].iter().collect()],
             ProjectType::Node => vec![["package.json"].iter().collect()],
+            ProjectType::Python => vec![["requirements.txt"].iter().collect()],
         }
     }
 
     fn driver(self, user_agent: &str) -> Box<dyn Driver> {
         match self {
             ProjectType::Rust => Box::from(RustDriver::new(user_agent)),
+            ProjectType::Node => Box::from(NodeDriver::new(user_agent)),
             ProjectType::Python => {
                 error!("Support for this language is not yet available");
                 process::exit(0);
             }
-            ProjectType::Node => Box::from(NodeDriver::new(user_agent)),
         }
     }
 }
@@ -89,19 +89,7 @@ fn match_single_project_type(project_type: ProjectType) -> Option<(ProjectType, 
     None
 }
 
-fn main() {
-    let yaml = load_yaml!("cli.yml");
-    let matches = App::from_yaml(yaml).version(crate_version!()).get_matches();
-    let debug_enabled = matches.is_present("debug");
-
-    setup_logger(debug_enabled);
-
-    let user_agent = match matches.value_of("agent") {
-        Some(val) => val,
-        None => "",
-    };
-    debug!("User agent set to: {}", user_agent);
-
+fn command_main(matches: &ArgMatches, user_agent: &str) {
     debug!("Determining project type");
     let (project_type, path): (ProjectType, PathBuf) = match matches.value_of("type") {
         Some(override_value) => {
@@ -148,5 +136,38 @@ fn main() {
     };
 
     debug!("Getting info from driver");
+    info!("Fetching descriptions");
     driver.print_info(&content);
+}
+
+fn command_list(_matches: &ArgMatches) {
+    let supported = ProjectType::iter()
+        .map(|pt| pt.to_string())
+        .collect::<Vec<String>>()
+        .join(", ");
+    info!("Supported languages: {}", supported);
+}
+
+fn main() {
+    let yaml = load_yaml!("cli.yml");
+    let matches = App::from_yaml(yaml).version(crate_version!()).get_matches();
+    let debug_enabled = matches.is_present("debug");
+    setup_logger(debug_enabled);
+    let user_agent = match matches.value_of("agent") {
+        Some(val) => val,
+        None => "",
+    };
+    debug!("User agent set to: {}", user_agent);
+
+    if let Some(subcommand) = matches.subcommand_name() {
+        match subcommand {
+            "list" => command_list(&matches),
+            _ => {
+                error!("Unsupported subcommand");
+                process::exit(1);
+            }
+        }
+    } else {
+        command_main(&matches, user_agent);
+    };
 }
