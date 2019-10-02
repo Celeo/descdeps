@@ -2,7 +2,6 @@
 
 [![CircleCI](https://circleci.com/gh/Celeo/descdeps.svg?style=svg)](https://circleci.com/gh/Celeo/descdeps)
 [![Crates.io](https://img.shields.io/crates/v/descdeps)](https://crates.io/crates/descdeps)
-[![Docs.rs](https://docs.rs/descdeps/badge.svg)](https://docs.rs/descdeps/latest/descdeps/)
 
 CLI program to describe a project's dependencies.
 
