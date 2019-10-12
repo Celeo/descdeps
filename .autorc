@@ -1,0 +1,7 @@
+{
+  "repo": "descdeps",
+  "owner": "Celeo",
+  "plugins": [
+    "rust"
+  ]
+}

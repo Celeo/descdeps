@@ -1,0 +1,14 @@
+{
+  "name": "descdeps",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/github:celeo/descdeps",
+  "author": "Celeo <celeodor@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "release": "auto shipit"
+  },
+  "devDependencies": {
+    "auto": "^7.8.0"
+  }
+}
