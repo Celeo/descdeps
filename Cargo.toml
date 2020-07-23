@@ -8,7 +8,7 @@ repository = "https://github.com/Celeo/descdeps"
 readme = "README.md"
 keywords = ["describe", "dependencies"]
 categories = ["command-line-utilities"]
-license = "Apache-2.0 AND MIT"
+license = "Apache-2.0 OR MIT"
 exclude = [
     ".gitignore",
     ".circleci/config.yml",
